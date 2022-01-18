@@ -12,8 +12,9 @@ const (
 	DefaultMaxConn        = 12000
 	DefaultMaxPacketSize  = 4096
 	DefaultConfPath       = "conf/zinx.json"
-	DefaultTaskChanSize   = 1024
+	DefaultTaskQueueSize  = 1024
 	DefaultWorkerPoolSize = 10
+	DefaultMaxMsgBuffSize = 1024
 )
 
 var (
@@ -32,6 +33,7 @@ type Server struct {
 	MaxPacketSize    uint32 /*最大包长*/
 	WorkerPoolSize   uint32 /*工作池容量*/
 	MaxTaskQueueSize uint32 /*消息队列容量*/
+	MaxMsgBuffSize   uint32 /*有缓冲消息队列容量*/
 	/*conf*/
 	ConfPath string
 }
@@ -48,7 +50,7 @@ func init() {
 		Version:          "v0.0.1",
 		MaxConn:          DefaultMaxConn,
 		MaxPacketSize:    DefaultMaxPacketSize,
-		MaxTaskQueueSize: DefaultTaskChanSize,
+		MaxTaskQueueSize: DefaultTaskQueueSize,
 		WorkerPoolSize:   DefaultWorkerPoolSize,
 	}
 	flag.StringVar(&ServerSetting.ConfPath, "path", DefaultConfPath, "配置文件相对路径")

@@ -8,33 +8,59 @@ import (
 	"net"
 )
 
-const MaxBuff = 512
-
-var OverChan = make(chan struct{})
-
 type Server struct {
-	Name      string
-	IPVersion string //tcp4 or other
-	IP        string
-	Port      int
-	MsgHandle ziface.IMsgHandler //当前Server由用户绑定的回调router,也就是Server注册的链接对应的处理业务
+	Name        string
+	IPVersion   string //tcp4 or other
+	IP          string
+	Port        int
+	MsgHandle   ziface.IMsgHandler //当前Server由用户绑定的回调router,也就是Server注册的链接对应的处理业务
+	ConnMgr     ziface.IConnManager
+	OnConnStart func(connection ziface.IConnection)
+	OnConnStop  func(connection ziface.IConnection)
+	over        chan struct{}
 }
 
-func (s *Server) AddRouter(msgID uint32, router ziface.IRouter) {
-	s.MsgHandle.AddRouter(msgID, router)
+func (s *Server) CallOnConnStart(connection ziface.IConnection) {
+	if s.OnConnStart != nil {
+		s.OnConnStart(connection)
+	}
 }
 
-func NewServer() ziface.IServer {
+func (s *Server) CallOnConnStop(connection ziface.IConnection) {
+	if s.OnConnStop != nil {
+		s.OnConnStop(connection)
+	}
+}
+
+func (s *Server) SetOnConnStart(hookFunc func(connection ziface.IConnection)) {
+	s.OnConnStart = hookFunc
+}
+
+func (s *Server) SetOnConnStop(hookFunc func(connection ziface.IConnection)) {
+	s.OnConnStop = hookFunc
+}
+
+func NewServer() *Server {
 	return &Server{
 		Name:      global.ServerSetting.Name,
 		IPVersion: "tcp4",
 		IP:        global.ServerSetting.IP,
 		Port:      global.ServerSetting.Port,
 		MsgHandle: NewMsgHandler(),
+		ConnMgr:   NewConnManager(),
+		over:      make(chan struct{}),
 	}
 }
 
 /*实现 ziface.IServer 里的全部接口方法*/
+
+func (s *Server) AddRouter(msgID uint32, router ziface.IRouter) {
+	s.MsgHandle.AddRouter(msgID, router)
+}
+
+func (s *Server) GetConnMgr() ziface.IConnManager {
+	return s.ConnMgr
+}
 
 func (s *Server) Start() {
 	fmt.Printf("Server listener at IP:%s,Port:%d,is starting\n", s.IP, s.Port)
@@ -63,10 +89,13 @@ func (s *Server) Start() {
 				log.Println("Accept err ", err)
 				continue
 			}
-			//3.2 TODO Server.Start() 设置服务器最大连接控制,如果超过最大连接，那么则关闭此新的连接
-
+			//设置服务器最大连接控制,如果超过最大连接，那么则关闭此新的连接
+			if s.ConnMgr.Len() >= global.ServerSetting.MaxConn {
+				conn.Close()
+				continue
+			}
 			//3.3 处理该新连接请求的 业务 方法， 此时应该有 handler 和 conn是绑定的
-			dealConn := NewConnection(conn, cid, s.MsgHandle)
+			dealConn := NewConnection(s, conn, cid, s.MsgHandle)
 			cid++
 			//开启处理业务
 			go dealConn.Start()
@@ -75,12 +104,14 @@ func (s *Server) Start() {
 }
 
 func (s *Server) Stop() {
-	fmt.Println("[STOP] Zinx server , name ", s.Name)
-	close(OverChan)
+	fmt.Println("[STOP] Zinx server , name:", s.Name)
+	//将所有连接清除然后再退出
+	s.ConnMgr.Clear()
+	close(s.over)
 }
 
 func (s *Server) Server() {
 	s.Start()
 	//TODO Server.Serve() 是否在启动服务的时候 还要处理其他的事情呢 可以在这里添加
-	<-OverChan
+	<-s.over
 }

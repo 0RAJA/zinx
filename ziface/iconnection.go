@@ -5,20 +5,13 @@ import "net"
 /*属于链接的接口文件*/
 
 type IConnection interface {
-	// Start 启动连接，让当前连接开始工作
-	Start()
-	// Stop 停止连接，结束当前连接状态M
-	Stop()
-	// GetTCPConnection 从当前连接获取原始的socket TCPConn
-	GetTCPConnection() *net.TCPConn
-	// GetConnID 获取当前连接ID
-	GetConnID() uint32
-	// RemoteAddr 获取远程客户端地址信息
-	RemoteAddr() net.Addr
-	// SendMsg 加密并发送信息
-	SendMsg(message IMessage) error
-	// Handle 处理数据
-	Handle(req IRequest)
+	Start()                                 // Start 启动连接，让当前连接开始工作
+	Stop()                                  // Stop 停止连接，结束当前连接状态M
+	GetTCPConnection() *net.TCPConn         // GetTCPConnection 从当前连接获取原始的socket TCPConn
+	GetConnID() uint32                      // GetConnID 获取当前连接ID
+	RemoteAddr() net.Addr                   // RemoteAddr 获取远程客户端地址信息
+	SendMsg(message IMessage) error         // SendMsg 加密并发送信息(无缓冲)
+	SendMsgWithBuff(message IMessage) error //直接发送消息(有缓冲)
 }
 
 /*

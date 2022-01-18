@@ -7,6 +7,7 @@ import (
 	"log"
 	"net"
 	"strconv"
+	"time"
 )
 
 func main() {
@@ -18,7 +19,31 @@ func main() {
 	}
 	defer conn.Close()
 	dp := znet.NewDataPack()
-	for i := 0; i < 10; i++ {
+	go func() {
+		dp := znet.NewDataPack()
+		for {
+			headData := make([]byte, dp.GetHeadLen())
+			if _, err := io.ReadFull(conn, headData); err != nil {
+				log.Println(err)
+				break
+			}
+			msg, err := dp.UnPack(headData)
+			if err != nil {
+				log.Println(err)
+				break
+			}
+			if msg.GetDataLen() > 0 {
+				data := make([]byte, msg.GetDataLen())
+				if _, err := io.ReadFull(conn, data); err != nil {
+					log.Println(err)
+					break
+				}
+				msg.SetData(data)
+				fmt.Println("[Client Resv] ", string(data))
+			}
+		}
+	}()
+	for i := 0; i < 5; i++ {
 		message := znet.NewMessage(uint32(i%2), []byte("hello world"+strconv.Itoa(i)))
 		data, err := dp.Pack(message)
 		if err != nil {
@@ -30,25 +55,6 @@ func main() {
 			log.Println(err)
 			continue
 		}
-		dp := znet.NewDataPack()
-		headData := make([]byte, dp.GetHeadLen())
-		if _, err := io.ReadFull(conn, headData); err != nil {
-			log.Println(err)
-			break
-		}
-		msg, err := dp.UnPack(headData)
-		if err != nil {
-			log.Println(err)
-			break
-		}
-		if msg.GetDataLen() > 0 {
-			data := make([]byte, msg.GetDataLen())
-			if _, err := io.ReadFull(conn, data); err != nil {
-				log.Println(err)
-				break
-			}
-			msg.SetData(data)
-			fmt.Println("[Client Resv] ", string(data))
-		}
 	}
+	time.Sleep(3 * time.Second)
 }

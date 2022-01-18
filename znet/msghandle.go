@@ -14,6 +14,10 @@ type MsgHandle struct {
 	TaskQueue      []chan ziface.IRequest
 }
 
+func NewMsgHandler() *MsgHandle {
+	return &MsgHandle{APIs: make(map[uint32]ziface.IRouter), WorkerPoolSize: global.ServerSetting.WorkerPoolSize, TaskQueue: make([]chan ziface.IRequest, global.ServerSetting.WorkerPoolSize)}
+}
+
 func (m *MsgHandle) StartOneWorker(queue chan ziface.IRequest) {
 	for {
 		select {
@@ -36,10 +40,6 @@ func (m *MsgHandle) SendMsgToTaskQueue(request ziface.IRequest) {
 	workerID := rand.Intn(int(m.WorkerPoolSize))
 	fmt.Println("Add ConnID=", request.GetIConnect().GetConnID(), " request msgID=", request.GetMsgID(), " to WorkerID=", workerID)
 	m.TaskQueue[workerID] <- request
-}
-
-func NewMsgHandler() *MsgHandle {
-	return &MsgHandle{APIs: make(map[uint32]ziface.IRouter), WorkerPoolSize: global.ServerSetting.WorkerPoolSize, TaskQueue: make([]chan ziface.IRequest, global.ServerSetting.WorkerPoolSize)}
 }
 
 func (m *MsgHandle) HandleRequest(request ziface.IRequest) {

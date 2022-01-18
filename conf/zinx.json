@@ -6,5 +6,6 @@
   "MaxConn": 12000,
   "MaxPacketSize": 4096,
   "WorkerPoolSize": 10,
-  "MaxTaskQueueSize": 1024
+  "MaxTaskQueueSize": 1024,
+  "MaxMsgBuffSize": 1024
 }
