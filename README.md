@@ -6,10 +6,10 @@
 
 Server依然是处理客户端的响应，主要关键的几个方法是Listen、Accept等。当建立与客户端的套接字后，那么就会开启两个Goroutine分别处理读数据业务和写数据业务，读写数据之间的消息通过一个Channel传递。
 
-![img.png](D:\Projects\GoFile\zinx\img\读写分离.png)
+![img.png](img\读写分离.png)
 
 ## 消息队列和多任务机制
 
 我们需要添加消息队列和多worker机制,通过worker的数量限定业务的固定goroutine数量.太多的goroutine会带来不必要的环境切换成本.可以使用消息队列来缓冲worker工作的数据
 
-![img.png](D:\Projects\GoFile\zinx\img\工作池和消息队列.png)
+![img.png](img\工作池和消息队列.png)
