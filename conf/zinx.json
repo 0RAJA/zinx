@@ -1,0 +1,10 @@
+{
+  "Name": "Zinx",
+  "IP": "127.0.0.1",
+  "Port": 8080,
+  "Version": "v0.0.1",
+  "MaxConn": 12000,
+  "MaxPacketSize": 4096,
+  "WorkerPoolSize": 10,
+  "MaxTaskQueueSize": 1024
+}
