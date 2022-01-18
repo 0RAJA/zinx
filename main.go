@@ -15,11 +15,13 @@ type PingRouter struct {
 }
 
 func (p *PingRouter) Handle(request ziface.IRequest) {
-	fmt.Println("[Call PingRouter Handle]")
-	fmt.Println(string(request.GetData()))
-	err := request.GetIConnect().SendMsgWithBuff(znet.NewMessage(0, request.GetData()))
+	fmt.Println("Call PingRouter Handle")
+	//先读取客户端的数据，再回写ping...ping...ping
+	fmt.Println("recv from client : msgId=", request.GetMsgID(), ", data=", string(request.GetData()))
+
+	err := request.GetIConnect().SendMsgWithBuff(znet.NewMessage(0, []byte("ping...ping...ping")))
 	if err != nil {
-		log.Println("ping...ping...ping err", err)
+		log.Println(err)
 	}
 }
 
@@ -28,24 +30,43 @@ type HelloRouter struct {
 }
 
 func (h *HelloRouter) Handle(request ziface.IRequest) {
-	fmt.Println("[Call HelloRouter Handle]")
-	fmt.Println(string(request.GetData()))
-	err := request.GetIConnect().SendMsg(znet.NewMessage(0, request.GetData()))
+	fmt.Println("Call HelloZinxRouter Handle")
+	//先读取客户端的数据，再回写ping...ping...ping
+	fmt.Println("recv from client : msgId=", request.GetMsgID(), ", data=", string(request.GetData()))
+
+	err := request.GetIConnect().SendMsgWithBuff(znet.NewMessage(1, []byte("Hello Zinx Router V0.10")))
 	if err != nil {
-		log.Println("ping...ping...ping err", err)
+		log.Println(err)
 	}
 }
 
 func OnStart(connection ziface.IConnection) {
-	if err := connection.SendMsgWithBuff(znet.NewMessage(0, []byte(fmt.Sprint("[Connection]", connection.GetConnID(), " is start")))); err != nil {
+	fmt.Println("DoConnectionLost is Called ... ")
+
+	//=============设置两个链接属性，在连接创建之后===========
+	fmt.Println("Set conn Name, Home done!")
+	connection.SetProperty("Name", "raja")
+	connection.SetProperty("Home", "test")
+	//===================================================
+
+	err := connection.SendMsg(znet.NewMessage(2, []byte("DoConnection BEGIN...")))
+	if err != nil {
 		log.Println(err)
 	}
 }
 
 func OnStop(connection ziface.IConnection) {
-	if err := connection.SendMsgWithBuff(znet.NewMessage(0, []byte(fmt.Sprint("[Connection]", connection.GetConnID(), " is stop")))); err != nil {
-		log.Println(err)
+	//============在连接销毁之前，查询conn的Name，Home属性=====
+	if name, ok := connection.GetProperty("Name"); ok {
+		fmt.Println("Conn Property Name = ", name)
 	}
+
+	if home, ok := connection.GetProperty("Home"); ok {
+		fmt.Println("Conn Property Home = ", home)
+	}
+	//===================================================
+
+	fmt.Println("DoConnectionLost is Called ... ")
 }
 
 func main() {

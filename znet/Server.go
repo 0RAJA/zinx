@@ -15,29 +15,37 @@ type Server struct {
 	Port        int
 	MsgHandle   ziface.IMsgHandler //当前Server由用户绑定的回调router,也就是Server注册的链接对应的处理业务
 	ConnMgr     ziface.IConnManager
-	OnConnStart func(connection ziface.IConnection)
-	OnConnStop  func(connection ziface.IConnection)
+	OnConnStart []func(connection ziface.IConnection)
+	OnConnStop  []func(connection ziface.IConnection)
 	over        chan struct{}
 }
 
 func (s *Server) CallOnConnStart(connection ziface.IConnection) {
-	if s.OnConnStart != nil {
-		s.OnConnStart(connection)
+	for _, f := range s.OnConnStart {
+		f(connection)
 	}
 }
 
 func (s *Server) CallOnConnStop(connection ziface.IConnection) {
-	if s.OnConnStop != nil {
-		s.OnConnStop(connection)
+	for _, f := range s.OnConnStop {
+		f(connection)
 	}
 }
 
-func (s *Server) SetOnConnStart(hookFunc func(connection ziface.IConnection)) {
-	s.OnConnStart = hookFunc
+func (s *Server) SetOnConnStart(hookFuncs ...func(connection ziface.IConnection)) {
+	for _, f := range hookFuncs {
+		if f != nil {
+			s.OnConnStart = append(s.OnConnStart, f)
+		}
+	}
 }
 
-func (s *Server) SetOnConnStop(hookFunc func(connection ziface.IConnection)) {
-	s.OnConnStop = hookFunc
+func (s *Server) SetOnConnStop(hookFuncs ...func(connection ziface.IConnection)) {
+	for _, f := range hookFuncs {
+		if f != nil {
+			s.OnConnStop = append(s.OnConnStop, f)
+		}
+	}
 }
 
 func NewServer() *Server {

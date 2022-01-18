@@ -12,6 +12,9 @@ type IConnection interface {
 	RemoteAddr() net.Addr                   // RemoteAddr 获取远程客户端地址信息
 	SendMsg(message IMessage) error         // SendMsg 加密并发送信息(无缓冲)
 	SendMsgWithBuff(message IMessage) error //直接发送消息(有缓冲)
+	SetProperty(k string, v interface{})
+	GetProperty(k string) (interface{}, bool)
+	RemoveProperty(k string)
 }
 
 /*

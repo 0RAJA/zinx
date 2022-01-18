@@ -8,6 +8,7 @@ import (
 	"io"
 	"log"
 	"net"
+	"sync"
 )
 
 type Connection struct {
@@ -27,11 +28,33 @@ type Connection struct {
 	msgChan chan []byte
 	//有缓冲消息传输chan 用于读写协程间通信
 	buffChan chan []byte
+	//属性
+	property map[string]interface{}
+	l        sync.RWMutex
+}
+
+func (c *Connection) SetProperty(k string, v interface{}) {
+	defer c.l.Unlock()
+	c.l.Lock()
+	c.property[k] = v
+}
+
+func (c *Connection) GetProperty(k string) (v interface{}, ok bool) {
+	defer c.l.RUnlock()
+	c.l.RLock()
+	v, ok = c.property[k]
+	return
+}
+
+func (c *Connection) RemoveProperty(k string) {
+	defer c.l.Unlock()
+	c.l.Lock()
+	delete(c.property, k)
 }
 
 // NewConnection 新建一个连接并将其添加到连接管理器中
 func NewConnection(TCPServer ziface.IServer, conn *net.TCPConn, connID uint32, msgHandle ziface.IMsgHandler) *Connection {
-	connection := &Connection{TCPServer: TCPServer, Conn: conn, ConnID: connID, msgHandle: msgHandle, ExitBuffChan: make(chan bool, 1), msgChan: make(chan []byte), buffChan: make(chan []byte)}
+	connection := &Connection{TCPServer: TCPServer, Conn: conn, ConnID: connID, msgHandle: msgHandle, ExitBuffChan: make(chan bool, 1), msgChan: make(chan []byte), buffChan: make(chan []byte), property: map[string]interface{}{}}
 	TCPServer.GetConnMgr().Add(connection)
 	return connection
 }
@@ -76,6 +99,7 @@ func (c *Connection) Stop() {
 }
 
 func (c *Connection) StartWrite() {
+	defer fmt.Println(c.RemoteAddr().String(), "conn write exit")
 	fmt.Println("[Write goroutines is running]")
 	defer fmt.Println("[Write goroutines is done]")
 	for {
@@ -132,8 +156,8 @@ func (c *Connection) SendMsgWithBuff(msg ziface.IMessage) error {
 
 // StartReader 处理conn读数据的G
 func (c *Connection) StartReader() {
-	fmt.Println("Reader G is running")
 	defer fmt.Println(c.RemoteAddr().String(), "conn reader exit")
+	fmt.Println("Reader G is running")
 	defer c.Stop()
 	dp := NewDataPack()
 	for {
